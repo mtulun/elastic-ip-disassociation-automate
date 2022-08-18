@@ -1,13 +1,21 @@
 import logging
+import os
 import boto3
 import pandas as pd
 from botocore.exceptions import ClientError
 
-profile_list = ["AWS_PROFILE_1","AWS_PROFILE_1","AWS_PROFILE_1"]
+profile_list = ["default"]
 
-# Ireland, Frankfurt, North Virginia, Oregon
-region_list = ["eu-west-1","eu-central-1","us-east-1","us-west-2"]
+ec2 = boto3.client('ec2')
+region_dictionary = ec2.describe_regions()
 
+# print(region_dictionary) for log purposes.
+
+region_list = [
+    region['RegionName']for region in ec2.describe_regions()['Regions']
+]
+
+print(region_list)
 disassociatable_ips=[]
 
 for profile in profile_list:
@@ -41,5 +49,16 @@ for profile in profile_list:
             logging.warning(e)
             break
 
-df = pd.DataFrame(disassociatable_ips,columns=['PROFILE','REGION','ELASTIC IP'])
-print(df)
+df = pd.DataFrame(disassociatable_ips, columns=[
+                  'PROFILE', 'REGION', 'ELASTIC IP'])
+
+os.makedirs('EIPS/', exist_ok=True)
+
+df.to_csv(
+    'EIPS/elastic_ip_list.csv',
+    index=False,
+    encoding='utf-8',
+    header=True
+)
+
+print("Done!...")
