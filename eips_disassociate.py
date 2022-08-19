@@ -2,7 +2,6 @@ from email import message
 import logging
 import os
 from sre_constants import CHARSET
-import string
 import boto3
 import pandas as pd
 from botocore.exceptions import ClientError
@@ -10,9 +9,6 @@ from botocore.exceptions import ClientError
 profile_list = ["default"]
 
 ec2 = boto3.client('ec2')
-# region_dictionary = ec2.describe_regions()
-
-# print(region_dictionary) for log purposes.
 
 region_list = [
     region['RegionName']for region in ec2.describe_regions()['Regions']
@@ -76,7 +72,7 @@ if not formatted_list:
         ses.send_email(
                 Destination={
                     "ToAddresses": [
-                        "asenasulun@gmail.com",
+                        "<RECIPIENTS>"
                     ],
                 },
                 Message={
@@ -91,16 +87,15 @@ if not formatted_list:
                         "Data": "Information About Elastic Ips",
                     },
                 },
-                Source="taylan.ulun@outlook.com",
+                Source="<SENDERS>",
             )
 else:
     ses = boto3.client('ses',region_name='eu-central-1')
     CHARSET = 'UTF-8'
-    body = message
     ses.send_email(
             Destination={
                 "ToAddresses": [
-                    "asenasulun@gmail.com",
+                    "<RECIPIENTS>"
                 ],
             },
             Message={
@@ -115,5 +110,5 @@ else:
                     "Data": "Information About Elastic Ips",
                 },
             },
-            Source="taylan.ulun@outlook.com",
+            Source="<SENDERS>",
         )
