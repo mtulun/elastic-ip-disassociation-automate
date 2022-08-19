@@ -1,5 +1,8 @@
+from email import message
 import logging
 import os
+from sre_constants import CHARSET
+import string
 import boto3
 import pandas as pd
 from botocore.exceptions import ClientError
@@ -7,7 +10,7 @@ from botocore.exceptions import ClientError
 profile_list = ["default"]
 
 ec2 = boto3.client('ec2')
-region_dictionary = ec2.describe_regions()
+# region_dictionary = ec2.describe_regions()
 
 # print(region_dictionary) for log purposes.
 
@@ -15,7 +18,9 @@ region_list = [
     region['RegionName']for region in ec2.describe_regions()['Regions']
 ]
 
-print(region_list)
+regionDataFrame = pd.DataFrame(region_list)
+
+print(regionDataFrame)
 disassociatable_ips=[]
 
 for profile in profile_list:
@@ -24,9 +29,9 @@ for profile in profile_list:
 
         try:
 
-            session = boto3.Session(profile_name=f'{profile}', region_name=f'{region}')
+            # session = boto3.Session(profile_name=f'{profile}', region_name=f'{region}')
 
-            client = session.client('ec2')
+            client = boto3.client('ec2',region)
             addresses_dict = client.describe_addresses()
             
             for eip_dict in addresses_dict['Addresses']:
@@ -49,7 +54,7 @@ for profile in profile_list:
             logging.warning(e)
             break
 
-df = pd.DataFrame(disassociatable_ips, columns=[
+df = pd.DataFrame(disassociatable_ips,dtype=str,columns=[
                   'PROFILE', 'REGION', 'ELASTIC IP'])
 
 os.makedirs('EIPS/', exist_ok=True)
@@ -61,4 +66,54 @@ df.to_csv(
     header=True
 )
 
+formatted_list = format(df.to_string())
+print(formatted_list)
 print("Done!...")
+if not formatted_list:
+        ses = boto3.client('ses',region_name='eu-central-1')
+        CHARSET = 'UTF-8'
+        body = message
+        ses.send_email(
+                Destination={
+                    "ToAddresses": [
+                        "asenasulun@gmail.com",
+                    ],
+                },
+                Message={
+                    "Body": {
+                        "Text": {
+                            "Charset": CHARSET,
+                            "Data": "There are no unused elastic ip.",
+                        }
+                    },
+                    "Subject": {
+                        "Charset": CHARSET,
+                        "Data": "Information About Elastic Ips",
+                    },
+                },
+                Source="taylan.ulun@outlook.com",
+            )
+else:
+    ses = boto3.client('ses',region_name='eu-central-1')
+    CHARSET = 'UTF-8'
+    body = message
+    ses.send_email(
+            Destination={
+                "ToAddresses": [
+                    "asenasulun@gmail.com",
+                ],
+            },
+            Message={
+                "Body": {
+                    "Text": {
+                        "Charset": CHARSET,
+                        "Data": "List of Elastic Ips:\n" + formatted_list,
+                    }
+                },
+                "Subject": {
+                    "Charset": CHARSET,
+                    "Data": "Information About Elastic Ips",
+                },
+            },
+            Source="taylan.ulun@outlook.com",
+        )
